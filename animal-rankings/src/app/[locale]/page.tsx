@@ -1,13 +1,12 @@
 import { AnimalList } from '@/components/AnimalList';
 import { Header } from '@/components/Header';
 
-interface HomeProps {
-    params: {
-        locale: string;
-    };
-}
-
-export default async function Home({ params }: HomeProps) {
+export default async function Home({
+    params,
+}: {
+    params: { locale: string };
+}) {
+    // Wrap params in Promise.resolve() to await them even though they're synchronous
     const { locale } = await Promise.resolve(params);
 
     return (

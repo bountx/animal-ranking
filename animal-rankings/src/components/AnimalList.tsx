@@ -26,11 +26,11 @@ export function AnimalList({ locale }: AnimalListProps) {
                 const { data: animalsData, error: animalsError } = await supabase
                     .from('animals')
                     .select(`
-            *,
-            animal_images (
-              image_url
-            )
-          `)
+                        *,
+                        animal_images (
+                          image_url
+                        )
+                    `)
                     .order('id', { ascending: true });
 
                 if (animalsError) {
@@ -56,7 +56,7 @@ export function AnimalList({ locale }: AnimalListProps) {
                     const translationMap = translationsData?.reduce((acc, translation) => {
                         acc[translation.original_name] = translation;
                         return acc;
-                    }, {});
+                    }, {} as Record<string, typeof translationsData[number]>);
 
                     // Process the data with translations
                     const processedAnimals: Animal[] = animalsData?.map(animal => ({
@@ -92,21 +92,28 @@ export function AnimalList({ locale }: AnimalListProps) {
     if (!mounted) return null;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {animals.length === 0 ? (
-                <div className="col-span-full text-center py-8 bg-white rounded shadow">
-                    <p>No animals found. Please add some data to your database.</p>
+        <>
+            {error && (
+                <div className="text-red-500 text-center mb-4">
+                    {error}
                 </div>
-            ) : (
-                animals.map(animal => (
-                    <a key={animal.id} href={`/${locale}/animal/${animal.id}`}>
-                        <AnimalCard
-                            animal={animal}
-                            locale={locale}
-                        />
-                    </a>
-                ))
             )}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {animals.length === 0 ? (
+                    <div className="col-span-full text-center py-8 bg-white rounded shadow">
+                        <p>No animals found. Please add some data to your database.</p>
+                    </div>
+                ) : (
+                    animals.map(animal => (
+                        <a key={animal.id} href={`/${locale}/animal/${animal.id}`}>
+                            <AnimalCard
+                                animal={animal}
+                                locale={locale}
+                            />
+                        </a>
+                    ))
+                )}
+            </div>
+        </>
     );
 }

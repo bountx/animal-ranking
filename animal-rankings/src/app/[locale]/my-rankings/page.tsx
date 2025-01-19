@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { Animal, Rating, AnimalTranslation } from '@/types';
 import { RATING_CATEGORIES } from '@/constants/ratings';
+import Image from 'next/image';
+import { useCallback } from 'react';
 
 type RatingCategory = keyof Rating;
 type SortCategory = RatingCategory | 'average';
@@ -33,14 +35,17 @@ export default function MyRankings({ params }: MyRankingsProps) {
     const [sortBy, setSortBy] = useState<SortCategory>('average');
     const router = useRouter();
 
-    const getSortedAnimals = (animals: AnimalWithScores[], category: SortCategory) => {
-        return [...animals].sort((a, b) => {
-            if (category === 'average') {
-                return b.averageScore - a.averageScore;
-            }
-            return b.scores[category] - a.scores[category];
-        });
-    };
+    const getSortedAnimals = useCallback(
+        (animals: AnimalWithScores[], category: SortCategory) => {
+            return [...animals].sort((a, b) => {
+                if (category === 'average') {
+                    return b.averageScore - a.averageScore;
+                }
+                return b.scores[category] - a.scores[category];
+            });
+        },
+        [] // No dependencies needed as it doesn't rely on external variables.
+    );
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -55,7 +60,15 @@ export default function MyRankings({ params }: MyRankingsProps) {
     }, [locale, router]);
 
     useEffect(() => {
-        setAnimals(getSortedAnimals(animals, sortBy));
+        setAnimals(prevAnimals => {
+            const sorted = [...prevAnimals].sort((a, b) => {
+                if (sortBy === 'average') {
+                    return b.averageScore - a.averageScore;
+                }
+                return b.scores[sortBy] - a.scores[sortBy];
+            });
+            return sorted;
+        });
     }, [sortBy]);
 
     useEffect(() => {
@@ -119,16 +132,18 @@ export default function MyRankings({ params }: MyRankingsProps) {
                 setAnimals(getSortedAnimals(processedAnimals, sortBy));
             } catch (err) {
                 console.error('Error fetching rankings:', err);
-                setError(locale === 'en' ?
-                    'Error loading your rankings' :
-                    'Błąd podczas ładowania rankingów');
+                setError(locale === 'en'
+                    ? 'Error loading your rankings'
+                    : 'Błąd podczas ładowania rankingów');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchRankings();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [locale]);
+
 
     const getScoreColor = (score: number) => {
         if (score >= 80) return 'bg-green-500';
@@ -217,15 +232,16 @@ export default function MyRankings({ params }: MyRankingsProps) {
                                     >
                                         <div className="flex items-center gap-4 mb-2">
                                             <Link href={`/${locale}/animal/${animal.id}`} className="flex items-center gap-4 flex-grow">
-                                                <div className="flex-shrink-0 w-12 h-12">
+                                                <div className="flex-shrink-0 w-12 h-12 relative rounded-full overflow-hidden">
                                                     {animal.animal_images?.[0]?.image_url ? (
-                                                        <img
+                                                        <Image
                                                             src={animal.animal_images[0].image_url}
                                                             alt={displayName}
-                                                            className="w-full h-full object-cover rounded-full"
+                                                            fill // Makes the image fill the parent container
+                                                            className="object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="w-full h-full bg-gray-200 rounded-full" />
+                                                        <div className="w-full h-full bg-gray-200" />
                                                     )}
                                                 </div>
                                                 <div className="flex-grow">

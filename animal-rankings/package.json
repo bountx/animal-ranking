@@ -1,5 +1,5 @@
 {
-  "name": "animal-rankings",
+  "name": "optimal-animal",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,12 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "preview:worker": "npm run build && wrangler dev",
+    "deploy:worker": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.47.12",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/typography": "^0.5.16",
     "lucide-react": "^0.471.2",
     "markdown-to-jsx": "^7.7.3",
@@ -21,7 +22,8 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^9.0.3",
     "rehype-raw": "^7.0.0",
-    "remark-breaks": "^4.0.0"
+    "remark-breaks": "^4.0.0",
+    "wrangler": "^3.103.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

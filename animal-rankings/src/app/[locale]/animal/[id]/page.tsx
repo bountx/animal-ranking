@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Animal, AnimalTranslation } from '@/types';
 import { User } from '@supabase/supabase-js';
 import { Header } from '@/components/Header';
+import Image from 'next/image';
 
 interface AnimalArticleProps {
     params: Promise<{
@@ -170,11 +171,14 @@ export default function AnimalArticle({ params }: AnimalArticleProps) {
                         )}
 
                         {/* Image */}
-                        <img
+                        <Image
                             src={images[currentImageIndex]?.image_url}
                             alt={`${name} - image ${currentImageIndex + 1}`}
+                            width={500} // Replace with the actual width of your image
+                            height={500} // Replace with the actual height of your image
                             className={`w-full h-full object-contain transition-opacity duration-300 ${images[currentImageIndex]?.isLoaded ? 'opacity-100' : 'opacity-0'
                                 }`}
+                            loading="lazy" // Optional: Defer loading of offscreen images
                         />
 
                         {images.length > 1 && (

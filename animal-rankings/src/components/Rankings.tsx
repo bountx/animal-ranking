@@ -6,16 +6,15 @@ import { supabase } from '@/lib/supabase';
 import { RATING_CATEGORIES } from '@/constants/ratings';
 import { Info, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type RatingCategory = keyof Rating;
 type SortCategory = RatingCategory | 'average';
 
-interface AverageScores extends Record<RatingCategory, number> { }
-
 interface AnimalWithRatings extends Animal {
     ratings: Rating[];
     averageRating: number;
-    averageScores: AverageScores;
+    averageScores: Record<RatingCategory, number>;
 }
 
 interface RankingsProps {
@@ -110,7 +109,7 @@ export function Rankings({ language }: RankingsProps) {
                         translations: translations[animal.name] ? [translations[animal.name]] : [],
                         ratings: animalRatings,
                         averageRating: totalAverage,
-                        averageScores: categoryScores as AverageScores
+                        averageScores: categoryScores as Record<RatingCategory, number>,
                     };
                 });
 
@@ -190,17 +189,19 @@ export function Rankings({ language }: RankingsProps) {
                             >
                                 <div className="flex items-center gap-4 mb-2">
                                     <Link href={`/${language}/animal/${animal.id}`} className="flex items-center gap-4 flex-grow">
-                                        <div className="flex-shrink-0 w-12 h-12">
+                                        <div className="flex-shrink-0 w-12 h-12 relative rounded-full overflow-hidden">
                                             {animal.animal_images?.[0]?.image_url ? (
-                                                <img
+                                                <Image
                                                     src={animal.animal_images[0].image_url}
                                                     alt={displayName}
-                                                    className="w-full h-full object-cover rounded-full"
+                                                    fill // Makes the image fill the parent container
+                                                    className="object-cover"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full bg-gray-200 rounded-full" />
+                                                <div className="w-full h-full bg-gray-200" />
                                             )}
                                         </div>
+
                                         <div className="flex-grow">
                                             <h2 className="text-lg font-medium text-gray-900">
                                                 {displayName}

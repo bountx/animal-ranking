@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Animal } from '../types';
 
 interface AnimalCardProps {
@@ -12,15 +13,16 @@ export function AnimalCard({ animal, locale }: AnimalCardProps) {
 
     return (
         <div className="bg-white rounded-lg shadow overflow-hidden">
-            {thumbnailUrl && (
-                <div className="aspect-w-16 aspect-h-9">
-                    <img
-                        src={thumbnailUrl}
-                        alt={displayName}
-                        className="w-full h-48 object-cover"
-                    />
-                </div>
-            )}
+            <div className="relative w-full h-48">
+                <Image
+                    src={thumbnailUrl ? thumbnailUrl : '/placeholder.jpg'}
+                    alt={displayName}
+                    fill
+                    sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+                    className="object-cover"
+                />
+            </div>
+
             <div className="p-4">
                 <h3 className="text-lg font-semibold text-black text-center">{displayName}</h3>
             </div>

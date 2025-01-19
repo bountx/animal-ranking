@@ -62,7 +62,7 @@ export function RatingForm({ animalId, language }: RatingFormProps) {
                 if (rating) {
                     console.log('Found existing rating:', rating);
                     setExistingRating(rating as Rating);
-                    const { id, created_at, user_id, animal_id, ...ratingValues } = rating;
+                    const { ...ratingValues } = rating;
                     setRatings(ratingValues as RatingValues);
                 }
             } catch (err) {
