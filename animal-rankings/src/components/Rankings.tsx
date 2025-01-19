@@ -1,71 +1,87 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Animal, Rating } from '@/types';
+import { Animal, Rating, AnimalTranslation } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { RATING_CATEGORIES } from '@/constants/ratings';
+import { Info, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+
+type RatingCategory = keyof Rating;
+type SortCategory = RatingCategory | 'average';
+
+interface AverageScores extends Record<RatingCategory, number> { }
+
+interface AnimalWithRatings extends Animal {
+    ratings: Rating[];
+    averageRating: number;
+    averageScores: AverageScores;
+}
 
 interface RankingsProps {
     language: 'en' | 'pl';
 }
 
-// Extended Animal type to include ratings and average
-interface AnimalWithRatings extends Animal {
-    ratings: Rating[];
-    averageRating: number;
-}
-
 export function Rankings({ language }: RankingsProps) {
     const [rankings, setRankings] = useState<AnimalWithRatings[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<SortCategory>('average');
+
+    const getScoreColor = (score: number) => {
+        if (score >= 80) return 'bg-green-500';
+        if (score >= 60) return 'bg-green-300';
+        if (score >= 40) return 'bg-yellow-300';
+        if (score >= 20) return 'bg-red-300';
+        return 'bg-red-500';
+    };
+
+    const getSortedRankings = (animals: AnimalWithRatings[], category: SortCategory) => {
+        return [...animals].sort((a, b) => {
+            if (category === 'average') {
+                return b.averageRating - a.averageRating;
+            }
+            return b.averageScores[category] - a.averageScores[category];
+        });
+    };
 
     useEffect(() => {
         const fetchRankings = async () => {
             try {
-                // First get all animals with their translations
                 const { data: animalsData, error: animalsError } = await supabase
                     .from('animals')
-                    .select('*');
+                    .select(`
+                        *,
+                        animal_images (
+                            image_url
+                        )
+                    `);
 
-                if (animalsError) {
-                    console.error('Error fetching animals:', animalsError);
-                    setError(animalsError.message);
-                    return;
-                }
+                if (animalsError) throw animalsError;
 
-                // Get translations if needed
-                let translations: { [key: string]: { original_name: string; translated_name: string } } = {};
+                let translations: { [key: string]: AnimalTranslation } = {};
                 if (language !== 'en') {
                     const { data: translationsData, error: translationsError } = await supabase
                         .from('animal_translations')
                         .select('*')
                         .eq('language', language);
 
-                    if (translationsError) {
-                        console.error('Error fetching translations:', translationsError);
-                        setError(translationsError.message);
-                        return;
-                    }
+                    if (translationsError) throw translationsError;
 
-                    translations = translationsData?.reduce((acc, translation) => {
+                    translations = translationsData?.reduce((acc: { [key: string]: AnimalTranslation }, translation: AnimalTranslation) => {
                         acc[translation.original_name] = translation;
                         return acc;
                     }, {});
                 }
 
-                // Get ratings for all animals
                 const { data: ratingsData, error: ratingsError } = await supabase
                     .from('ratings')
                     .select('*');
 
-                if (ratingsError) {
-                    console.error('Error fetching ratings:', ratingsError);
-                    setError(ratingsError.message);
-                    return;
-                }
+                if (ratingsError) throw ratingsError;
 
-                // Group ratings by animal
-                const ratingsByAnimal = ratingsData?.reduce((acc, rating) => {
+                const ratingsByAnimal: { [key: string]: Rating[] } = ratingsData?.reduce((acc: { [key: string]: Rating[] }, rating: Rating) => {
                     if (!acc[rating.animal_id]) {
                         acc[rating.animal_id] = [];
                     }
@@ -73,76 +89,165 @@ export function Rankings({ language }: RankingsProps) {
                     return acc;
                 }, {});
 
-                // Calculate rankings
-                const rankedAnimals = animalsData.map(animal => {
+                type ScoreCategories = Record<string, number>;
+                const processedAnimals = animalsData.map(animal => {
                     const animalRatings = ratingsByAnimal[animal.id] || [];
-                    interface RatingsByAnimal {
-                        [key: string]: Rating[];
-                    }
 
-                    interface Translations {
-                        [key: string]: {
-                            original_name: string;
-                            translated_name: string;
-                        };
-                    }
+                    const categoryScores = Object.keys(RATING_CATEGORIES[language]).reduce((acc: ScoreCategories, category) => {
+                        const key = category.toLowerCase();
+                        acc[key] = animalRatings.length > 0
+                            ? animalRatings.reduce((sum, rating) => sum + (Number(rating[key as keyof Rating]) || 0), 0) / animalRatings.length
+                            : 0;
+                        return acc;
+                    }, {});
 
-                    const averageRating: number = animalRatings.length > 0
-                        ? animalRatings.reduce((acc: number, rating: Rating) => {
-                            const sum: number = Object.keys(RATING_CATEGORIES[language]).reduce((sum: number, key: string) => {
-                                return sum + (Number(rating[key.toLowerCase() as keyof Rating]) || 0);
-                            }, 0);
-                            return acc + (sum / Object.keys(RATING_CATEGORIES[language]).length);
-                        }, 0) / animalRatings.length
+                    const totalAverage = animalRatings.length > 0
+                        ? (Object.values(categoryScores) as number[]).reduce((sum, score) => sum + score, 0) / Object.keys(categoryScores).length
                         : 0;
 
                     return {
                         ...animal,
-                        translation: translations[animal.name] || null,
+                        translations: translations[animal.name] ? [translations[animal.name]] : [],
                         ratings: animalRatings,
-                        averageRating
+                        averageRating: totalAverage,
+                        averageScores: categoryScores as AverageScores
                     };
-                }).sort((a, b) => b.averageRating - a.averageRating);
+                });
 
-                setRankings(rankedAnimals);
+                setRankings(getSortedRankings(processedAnimals, sortBy));
+                setLoading(false);
             } catch (err) {
                 console.error('Unexpected error:', err);
                 setError('An unexpected error occurred');
+                setLoading(false);
             }
         };
 
         fetchRankings();
     }, [language]);
 
-    if (error) {
+    useEffect(() => {
+        setRankings(getSortedRankings(rankings, sortBy));
+    }, [sortBy]);
+
+    if (loading) {
         return (
-            <div className="text-red-500 p-4">
-                Error: {error}
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
             </div>
         );
     }
 
+    if (error) {
+        return <div className="text-red-500 p-4">Error: {error}</div>;
+    }
+
+    const categories = RATING_CATEGORIES[language];
+
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold mb-6">Overall Rankings</h2>
-            {rankings.map((animal, index) => (
-                <div
-                    key={animal.id}
-                    className="bg-white rounded-lg shadow-md p-6 flex justify-between items-center"
-                >
-                    <div>
-                        <span className="text-2xl font-bold mr-4">#{index + 1}</span>
-                        <span className="text-xl">
-                            {language === 'en'
-                                ? animal.name
-                                : animal.translation?.translated_name ?? animal.name}
-                        </span>
-                    </div>
-                    <div className="text-xl font-bold">
-                        {animal.averageRating.toFixed(1)}
-                    </div>
+            <div className="flex flex-col space-y-4">
+                <h2 className="text-2xl font-bold">
+                    {language === 'en' ? 'Overall Rankings' : 'Ranking Ogólny'}
+                </h2>
+
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setSortBy('average')}
+                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors
+                            ${sortBy === 'average'
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                        {language === 'en' ? 'Average Score' : 'Średnia Ocen'}
+                    </button>
+                    {Object.entries(categories).map(([key, label]) => (
+                        <button
+                            key={key}
+                            onClick={() => setSortBy(key.toLowerCase() as RatingCategory)}
+                            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors
+                                ${sortBy === key.toLowerCase()
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        >
+                            {label}
+                        </button>
+                    ))}
                 </div>
-            ))}
+            </div>
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="divide-y divide-gray-200">
+                    {rankings.map((animal, index) => {
+                        const translation = animal.translations?.find(t => t.language === language);
+                        const displayName = language === 'en' ? animal.name : (translation?.translated_name || animal.name);
+                        const ratingCount = animal.ratings.length;
+
+                        return (
+                            <div
+                                key={animal.id}
+                                className="p-4 hover:bg-gray-50 transition-colors"
+                            >
+                                <div className="flex items-center gap-4 mb-2">
+                                    <Link href={`/${language}/animal/${animal.id}`} className="flex items-center gap-4 flex-grow">
+                                        <div className="flex-shrink-0 w-12 h-12">
+                                            {animal.animal_images?.[0]?.image_url ? (
+                                                <img
+                                                    src={animal.animal_images[0].image_url}
+                                                    alt={displayName}
+                                                    className="w-full h-full object-cover rounded-full"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gray-200 rounded-full" />
+                                            )}
+                                        </div>
+                                        <div className="flex-grow">
+                                            <h2 className="text-lg font-medium text-gray-900">
+                                                {displayName}
+                                            </h2>
+                                            <p className="text-sm text-gray-500">
+                                                {language === 'en'
+                                                    ? `Rank #${index + 1} • ${ratingCount} rating${ratingCount !== 1 ? 's' : ''}`
+                                                    : `Pozycja #${index + 1} • ${ratingCount} ocen${ratingCount === 1 ? 'a' : ''}`}
+                                            </p>
+                                        </div>
+                                    </Link>
+                                    <div className="flex items-center gap-1 text-lg font-semibold">
+                                        {sortBy === 'average'
+                                            ? animal.averageRating.toFixed(1)
+                                            : animal.averageScores[sortBy].toFixed(1)
+                                        }
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedAnimalId(selectedAnimalId === animal.id ? null : animal.id)}
+                                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    >
+                                        <Info className="w-5 h-5 text-gray-500" />
+                                    </button>
+                                </div>
+
+                                {selectedAnimalId === animal.id && (
+                                    <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+                                        {Object.entries(categories).map(([key, label]) => {
+                                            const score = Math.round(animal.averageScores[key.toLowerCase() as keyof typeof animal.averageScores]);
+                                            return (
+                                                <div key={key} className="flex flex-col items-center bg-gray-50 rounded p-2">
+                                                    <div className={`text-sm font-medium ${getScoreColor(score)} px-2 py-1 rounded text-white`}>
+                                                        {score}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1 text-center">
+                                                        {label}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }

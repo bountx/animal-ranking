@@ -25,9 +25,10 @@ def fetch_wiki_page(keyword):
     print(f"Found page title: {page_title}")
     return page_title
 
-def fetch_wikipedia_content(title):
+def fetch_wiki_content(title):
     """
-    Given a Wikipedia page title, fetch and return the plain text content.
+    Given a Wikipedia page title, fetch and return the content.
+    If it's a disambiguation page with Animals section, fetch the first animal entry instead.
     """
     print(f"Fetching content for Wikipedia page title: {title}")
     page_url = "https://en.wikipedia.org/w/api.php"
@@ -39,21 +40,22 @@ def fetch_wikipedia_content(title):
         "format": "json",
         "utf8": 1,
     }
+    
     response = requests.get(page_url, params=page_params)
     data = response.json()
-    
     pages = data.get("query", {}).get("pages", {})
-    # There should only be one page in this dictionary
     page = next(iter(pages.values()))
     extract = page.get("extract", "")
-    print(f"Content fetched for page title: {title}")
+    
+    # Check if there's an Animals section
+    if "== Animals ==" in extract:
+        # Get the content right after == Animals ==
+        animal_section = extract.split("== Animals ==")[1].split("==")[0].strip()
+        # Get the first line and extract the animal name
+        first_animal = animal_section.split('\n')[0].split(',')[0].strip()
+        
+        # Fetch the article for this animal
+        return fetch_wiki_content(first_animal)
+    
+    # If no Animals section, return the content as is
     return extract
-
-if __name__ == "__main__":
-    keyword = input("Enter a keyword to search on Wikipedia: ")
-    page_title = fetch_wiki_page(keyword)
-    if page_title:
-        content = fetch_wikipedia_content(page_title)
-        print(content)
-    else:
-        print("No page found.")

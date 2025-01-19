@@ -1,26 +1,26 @@
 export const RATING_CATEGORIES = {
     en: {
         color: "Color",
-        relativeStrength: "Relative Strength",
+        relative_strength: "Relative Strength",
         curiosity: "Curiosity",
         history: "History",
-        survivalMechanism: "Survival Mechanism",
+        survival_mechanism: "Survival Mechanism",
         shape: "Shape",
         intelligence: "Intelligence",
-        relativeSpeed: "Relative Speed",
-        worldAttitude: "World Attitude",
-        overallCoolness: "Overall Coolness"
+        relative_speed: "Relative Speed",
+        world_attitude: "World Attitude",
+        overall_coolness: "Overall Coolness"
     },
     pl: {
         color: "Kolor",
-        relativeStrength: "Siła relatywnie do wielkości",
+        relative_strength: "Siła relatywnie do wielkości",
         curiosity: "Ciekawość",
         history: "Historia",
-        survivalMechanism: "Mechanizm przetrwania",
+        survival_mechanism: "Mechanizm przetrwania",
         shape: "Kształt",
         intelligence: "Inteligencja",
-        relativeSpeed: "Prędkość relatywna",
-        worldAttitude: "Nastawienie do świata",
-        overallCoolness: "Ogólna fajność"
+        relative_speed: "Prędkość relatywna",
+        world_attitude: "Nastawienie do świata",
+        overall_coolness: "Ogólna fajność"
     }
-}
+};

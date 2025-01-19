@@ -20,39 +20,42 @@ def upload_and_verify(bucket, upload_path, file_data, max_retries=3, delay=1):
     Retries the upload if verification fails.
     """
     for attempt in range(max_retries):
+        print(f"Attempting to upload {upload_path}, attempt {attempt + 1}")
         # Attempt to upload the file
         bucket.upload(upload_path, file_data)
         # Wait briefly to ensure the file is processed
         sleep(delay)
         # Check if the file exists by retrieving its public URL
         public_url_response = bucket.get_public_url(upload_path)
-        print(f"Debug: public_url_response type: {type(public_url_response)}, value: {public_url_response}")
         
         # If response is a string URL or similar, use it directly
         if public_url_response and isinstance(public_url_response, str):
+            print(f"Upload verified for {upload_path}")
             return public_url_response
         
         # If response is a dict-like object, attempt to extract the URL
         if public_url_response and hasattr(public_url_response, 'get'):
             public_url = public_url_response.get("publicURL")
             if public_url:
+                print(f"Upload verified for {upload_path}")
                 return public_url
         
         print(f"Verification failed for {upload_path}. Retrying ({attempt + 1}/{max_retries})...")
+    print(f"Failed to upload {upload_path} after {max_retries} attempts")
     return None
 
 
 def add_animal_transactionally(animal: Animal, translations: list[Translation]) -> dict:
+    print(f"Starting transaction for animal: {animal.name}")
     # Initialize storage bucket
     bucket = SUPABASE.storage.from_(BUCKET_NAME)
     
     # Directory containing images
     images_dir = "images"
     
-    # Find all image files matching the pattern {animal.name}_*.jpg or {animal.name}_*.jpeg
     image_paths = []
-    for ext in ["jpg", "jpeg"]:
-        image_paths.extend(glob.glob(os.path.join(images_dir, f"{animal.name}_*.{ext}")))
+    animal_name_pattern = animal.name.replace(" ", "_")
+    image_paths.extend(glob.glob(os.path.join(images_dir, f"{animal_name_pattern}_*.webp")))
     
     image_urls = []
     
@@ -92,6 +95,7 @@ def add_animal_transactionally(animal: Animal, translations: list[Translation]) 
                 "p_image_urls": image_urls_payload
             }
         ).execute()
+        print(f"Transaction completed for animal: {animal.name}")
         return response.data
     except Exception as e:
         print(f"Error inserting animal: {e}")

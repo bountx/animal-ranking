@@ -4,19 +4,50 @@ from serpapi import GoogleSearch
 import dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from PIL import Image
+import io
 
 # Load environment variables
 dotenv.load_dotenv()
 
 # Retrieve SerpAPI key from environment variables
 SERAPI_KEY: str = os.getenv("SERAPI_KEY")
+TARGET_SIZE = 200 * 1024  # 200KB in bytes
+
+def compress_image(image_data, max_size=TARGET_SIZE):
+    """Compress image to WebP format under specified size."""
+    # Open image from binary data
+    img = Image.open(io.BytesIO(image_data))
+    
+    # Convert to RGB if necessary (WebP doesn't support RGBA)
+    if img.mode in ('RGBA', 'LA'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[-1])
+        img = background
+    
+    # Start with quality 80 and adjust based on size
+    quality = 80
+    while quality > 5:  # Don't go below quality 5
+        buffer = io.BytesIO()
+        img.save(buffer, format="WEBP", quality=quality)
+        size = buffer.tell()
+        
+        if size <= max_size:
+            return buffer.getvalue()
+        
+        quality -= 10
+    
+    # If we get here, even lowest quality is too big
+    buffer = io.BytesIO()
+    img.save(buffer, format="WEBP", quality=5)
+    return buffer.getvalue()
 
 def download_images_serpapi(keyword, num_images=5):
     # Define search parameters
     params = {
         "q": f"{keyword} animal",
         "tbm": "isch",
-        "ijn": "0",  # Page number for pagination, if needed
+        "ijn": "0",
         "api_key": SERAPI_KEY
     }
     
@@ -36,10 +67,10 @@ def download_images_serpapi(keyword, num_images=5):
     # Set up a requests session with retry strategy
     session = requests.Session()
     retries = Retry(
-        total=3,  # Total number of retries
-        backoff_factor=1,  # Wait 1s, then 2s, then 4s between retries
-        status_forcelist=[500, 502, 503, 504],  # Retry on these HTTP status codes
-        allowed_methods=["GET"]  # Retry only on GET requests
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["GET"]
     )
     adapter = HTTPAdapter(max_retries=retries)
     session.mount('http://', adapter)
@@ -66,40 +97,39 @@ def download_images_serpapi(keyword, num_images=5):
             print(f"[{idx + 1}/{total_images}] No URL found for this image. Skipping.")
             idx += 1
             continue
-        
+            
         try:
             print(f"[{idx + 1}/{total_images}] Attempting to download image: {image_url}")
             response = session.get(image_url, headers=headers, timeout=10)
-            response.raise_for_status()  # Raise an HTTPError for bad responses
+            response.raise_for_status()
             
-            # Optional: Validate image content type
             if 'image' not in response.headers.get('Content-Type', ''):
                 print(f"[{idx + 1}/{total_images}] URL does not point to an image. Skipping.")
                 idx += 1
                 continue
+                
+            # Compress the image to WebP
+            compressed_image = compress_image(response.content)
             
-            img_data = response.content
-            file_extension = os.path.splitext(image_url)[1].split('?')[0]  # Handle URLs with query params
-            if file_extension.lower() not in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
-                file_extension = '.jpg'  # Default to .jpg if unknown
-            
-            # Save the file directly into the "images" folder
+            # Save the compressed WebP file
             file_path = os.path.join(
-                images_folder, 
-                f"{keyword.replace(' ', '_')}_{downloaded + 1}{file_extension}"
+                images_folder,
+                f"{keyword.replace(' ', '_')}_{downloaded + 1}.webp"
             )
             
             with open(file_path, 'wb') as handler:
-                handler.write(img_data)
-            print(f"[{idx + 1}/{total_images}] Downloaded: {file_path}")
+                handler.write(compressed_image)
+                
+            file_size = os.path.getsize(file_path) / 1024  # Size in KB
+            print(f"[{idx + 1}/{total_images}] Downloaded and compressed: {file_path} ({file_size:.1f}KB)")
             downloaded += 1
+            
         except requests.exceptions.RequestException as req_err:
             print(f"[{idx + 1}/{total_images}] Request error: {req_err}. Retrying...")
         except Exception as e:
             print(f"[{idx + 1}/{total_images}] Unexpected error: {e}. Skipping.")
-        
         idx += 1
-    
+        
     if downloaded < num_images:
         print(f"Downloaded {downloaded} out of {num_images} images.")
     else:

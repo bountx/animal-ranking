@@ -24,26 +24,30 @@ class Translation:
         
         print("Configuring genai with API key")
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.0-pro")
         
-        print(f"Translating animal name: {self.animal.name}")
         prompt = f"""
         Translate the following name of an animal and its article into {self.language}: {self.animal.name}.
         DO NOT WRITE ANYTHING ELSE EXCEPT THE TRANSLATION.
+
+        for context:
+        {self.animal.article}
         """
+
         response = model.generate_content(prompt)
-        self.animal.name = response.candidates[0].content.parts[0].text
+        self.animal.name = response.candidates[0].content.parts[0].text.strip()
         print(f"Translated animal name: {self.animal.name}")
 
-        print(f"Translating animal article: {self.animal.name}")
+        print(f"Translating article into {self.language}...")
         prompt = f"""
-        Translate the following article about an {self.animal.name} into {self.language}:
+        Translate the following article about {self.animal.name} into {self.language}:
         {self.animal.article}
 
         DO NOT WRITE ANYTHING ELSE EXCEPT THE TRANSLATION.
+        The translation should be natural and you may need to adjust the wording or sentence structure to make it sound more fluent in {self.language}.
         """
         response = model.generate_content(prompt)
         self.animal.article = response.candidates[0].content.parts[0].text
-        print(f"Translated animal article: {self.animal.name}")
+        print(f"Translated article into {self.language}")
 
         return self

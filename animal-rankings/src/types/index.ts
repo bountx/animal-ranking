@@ -7,13 +7,13 @@ export type AnimalTranslation = {
     language: string;
 };
 
-export type Animal = {
+export interface Animal {
     id: string;
-    created_at: string;
     name: string;
     article: string;
-    translation: AnimalTranslation;
-};
+    animal_images?: Array<{ image_url: string }>;
+    translations?: AnimalTranslation[];
+}
 
 export type Rating = {
     id: string;

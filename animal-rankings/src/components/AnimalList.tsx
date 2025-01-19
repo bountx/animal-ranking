@@ -1,5 +1,4 @@
 "use client";
-
 import { Animal } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
@@ -23,9 +22,16 @@ export function AnimalList({ locale }: AnimalListProps) {
 
         const fetchAnimals = async () => {
             try {
+                // First fetch animals with their images
                 const { data: animalsData, error: animalsError } = await supabase
                     .from('animals')
-                    .select('*');
+                    .select(`
+            *,
+            animal_images (
+              image_url
+            )
+          `)
+                    .order('id', { ascending: true });
 
                 if (animalsError) {
                     console.error('Error fetching animals:', animalsError);
@@ -33,7 +39,8 @@ export function AnimalList({ locale }: AnimalListProps) {
                     return;
                 }
 
-                if (locale !== 'en' && animalsData) {
+                // Then fetch translations if needed
+                if (locale !== 'en') {
                     const { data: translationsData, error: translationsError } = await supabase
                         .from('animal_translations')
                         .select('*')
@@ -45,19 +52,33 @@ export function AnimalList({ locale }: AnimalListProps) {
                         return;
                     }
 
+                    // Create a map of translations by original name
                     const translationMap = translationsData?.reduce((acc, translation) => {
                         acc[translation.original_name] = translation;
                         return acc;
                     }, {});
 
-                    const animalsWithTranslations = animalsData.map(animal => ({
-                        ...animal,
-                        translation: translationMap[animal.name] || null
-                    }));
+                    // Process the data with translations
+                    const processedAnimals: Animal[] = animalsData?.map(animal => ({
+                        id: animal.id,
+                        name: animal.name,
+                        article: animal.article,
+                        animal_images: animal.animal_images,
+                        translations: translationMap[animal.name] ? [translationMap[animal.name]] : []
+                    })) || [];
 
-                    setAnimals(animalsWithTranslations);
+                    setAnimals(processedAnimals);
                 } else {
-                    setAnimals(animalsData || []);
+                    // If locale is 'en', just process the animals without translations
+                    const processedAnimals: Animal[] = animalsData?.map(animal => ({
+                        id: animal.id,
+                        name: animal.name,
+                        article: animal.article,
+                        animal_images: animal.animal_images,
+                        translations: []
+                    })) || [];
+
+                    setAnimals(processedAnimals);
                 }
             } catch (err) {
                 console.error('Unexpected error:', err);
@@ -78,7 +99,12 @@ export function AnimalList({ locale }: AnimalListProps) {
                 </div>
             ) : (
                 animals.map(animal => (
-                    <AnimalCard key={animal.id} animal={animal} locale={locale} />
+                    <a key={animal.id} href={`/${locale}/animal/${animal.id}`}>
+                        <AnimalCard
+                            animal={animal}
+                            locale={locale}
+                        />
+                    </a>
                 ))
             )}
         </div>

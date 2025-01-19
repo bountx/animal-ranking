@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.47.12",
     "@tailwindcss/typography": "^0.5.16",
+    "lucide-react": "^0.471.2",
+    "markdown-to-jsx": "^7.7.3",
     "next": "15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

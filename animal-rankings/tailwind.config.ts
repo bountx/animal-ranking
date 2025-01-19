@@ -10,6 +10,9 @@ module.exports = {
       colors: {
         primary: '#3BB6A5'
       },
+      textColor: {
+        DEFAULT: 'black',
+      },
     },
     plugins: [require('@tailwindcss/typography')],
   }

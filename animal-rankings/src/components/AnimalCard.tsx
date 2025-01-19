@@ -1,5 +1,4 @@
-import { Animal } from '@/types';
-import Link from 'next/link';
+import { Animal } from '../types';
 
 interface AnimalCardProps {
     animal: Animal;
@@ -7,18 +6,24 @@ interface AnimalCardProps {
 }
 
 export function AnimalCard({ animal, locale }: AnimalCardProps) {
-    const name = locale === 'en' ? animal.name : animal.translation?.translated_name ?? animal.name;
-    const article = locale === 'en' ? animal.article : animal.translation?.translated_article ?? animal.article;
+    const translation = animal.translations?.find(t => t.language === locale);
+    const displayName = translation?.translated_name || animal.name;
+    const thumbnailUrl = animal.animal_images?.[0]?.image_url;
 
     return (
-        <Link
-            href={`/${locale}/animal/${animal.id}`}
-            className="block bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-            <h2 className="text-xl font-bold mb-4">{name}</h2>
-            <p className="text-gray-600 mb-4">
-                {article.substring(0, 150)}...
-            </p>
-        </Link>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+            {thumbnailUrl && (
+                <div className="aspect-w-16 aspect-h-9">
+                    <img
+                        src={thumbnailUrl}
+                        alt={displayName}
+                        className="w-full h-48 object-cover"
+                    />
+                </div>
+            )}
+            <div className="p-4">
+                <h3 className="text-lg font-semibold text-black text-center">{displayName}</h3>
+            </div>
+        </div>
     );
 }
