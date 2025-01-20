@@ -1,7 +1,7 @@
 "use client";
 
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { RatingForm } from '@/components/RatingForm';
@@ -24,7 +24,8 @@ interface ImageWithLoadingStatus {
     isLoaded: boolean;
 }
 
-export default function AnimalArticle({ params }: AnimalArticleProps) {
+export default function AnimalArticle(props: AnimalArticleProps) {
+    const params = use(props.params);
     const [animal, setAnimal] = useState<Animal | null>(null);
     const [translation, setTranslation] = useState<AnimalTranslation | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -68,10 +69,8 @@ export default function AnimalArticle({ params }: AnimalArticleProps) {
     }, []);
 
     useEffect(() => {
-        params.then((resolvedParams) => {
-            setLocale(resolvedParams.locale);
-            setId(resolvedParams.id);
-        });
+        setLocale(params.locale);
+        setId(params.id);
     }, [params]);
 
     useEffect(() => {

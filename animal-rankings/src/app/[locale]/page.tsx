@@ -1,11 +1,12 @@
 import { AnimalList } from '@/components/AnimalList';
 import { Header } from '@/components/Header';
 
-export default async function Home({
-    params,
-}: {
-    params: { locale: string };
-}) {
+export default async function Home(
+    props: {
+        params: Promise<{ locale: string }>;
+    }
+) {
+    const params = await props.params;
     // Wrap params in Promise.resolve() to await them even though they're synchronous
     const { locale } = await Promise.resolve(params);
 

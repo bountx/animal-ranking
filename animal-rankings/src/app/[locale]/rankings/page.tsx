@@ -3,12 +3,13 @@ import { Rankings } from '@/components/Rankings';
 import { Header } from '@/components/Header';
 
 interface RankingsPageProps {
-    params: {
+    params: Promise<{
         locale: string;
-    };
+    }>;
 }
 
-export default async function RankingsPage({ params }: RankingsPageProps) {
+export default async function RankingsPage(props: RankingsPageProps) {
+    const params = await props.params;
     const { locale } = await Promise.resolve(params);
 
     return (
