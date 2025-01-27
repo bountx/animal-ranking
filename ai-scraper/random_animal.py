@@ -3,7 +3,10 @@ from fetch_wiki_page import fetch_wiki_page, fetch_wiki_content
 import google.generativeai as genai
 import dotenv
 from animal import Animal
-API_KEY = dotenv.get_key('.env', 'GEMINI_API_KEY')
+import os
+dotenv.load_dotenv()
+
+API_KEY = os.getenv("GEMINI_API_KEY")
 
 def get_random_animal_name():
     with open('ai-scraper/animals.txt') as f:
