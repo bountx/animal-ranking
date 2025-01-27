@@ -1,6 +1,6 @@
 import os
 import requests
-from serpapi import GoogleSearch
+from serpapi.google_search import GoogleSearch
 import dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
