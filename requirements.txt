@@ -1,0 +1,6 @@
+supabase
+requests
+google-generativeai
+pillow
+serpapi
+python-dotenv
