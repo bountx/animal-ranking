@@ -35,9 +35,6 @@ class Translation:
         for context:
         {self.animal.article}
         """
-
-        print(model)
-        print(prompt)
         
         for attempt in range(3):
             try:
