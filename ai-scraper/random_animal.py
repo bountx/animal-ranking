@@ -18,7 +18,7 @@ def generate_random_animal_article(prompt):
             raise ValueError("Please set GEMINI_API_KEY in .env file")
     genai.configure(api_key=API_KEY)
     print("Generating article...")
-    model = genai.GenerativeModel("gemini-1.0-pro")
+    model = genai.GenerativeModel("gemini-2.0-flash-exp")
     response = model.generate_content(prompt)
     print("Article generated.")
     return response.candidates[0].content.parts[0].text
