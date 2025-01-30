@@ -91,7 +91,7 @@ def add_animal_transactionally(animal: Animal, translations: list[Translation]) 
         print(f"Updating existing animal: {animal.name}")
 
     try:
-        response = SUPABASE.rpc("add_or_update_animal", payload).execute()
+        response = SUPABASE.rpc("add_animal_full", payload).execute()
         print(f"Transaction completed for {animal.name}")
         return response.data
     except Exception as e:
